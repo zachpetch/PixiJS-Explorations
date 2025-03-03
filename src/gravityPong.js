@@ -42,9 +42,6 @@ import {Application, Graphics, Color} from "pixi.js";
 
   // Create gravity wells
   let gravityWells = [
-    // {x: 200, y: 300, strength: 0.1},
-    // {x: 600, y: 300, strength: 0.1}
-    // {x: 200, y: 300, strength: 0.1},
     {x: app.screen.width / 2, y: app.screen.height / 2, strength: 0.2}
   ];
 
@@ -60,20 +57,6 @@ import {Application, Graphics, Color} from "pixi.js";
     });
   };
   drawGravityWells();
-
-  // Toggle gravity well positions
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "`") {
-      gravityWells.forEach(well => {
-        well.x = Math.random() * app.screen.width;
-        well.y = Math.random() * app.screen.height;
-      });
-      app.stage.removeChildren(3); // Remove previous gravity wells
-      drawGravityWells();
-    }
-  });
-
-  let pulse = 0;
 
   // Game loop
   app.ticker.add(() => {
@@ -112,25 +95,33 @@ import {Application, Graphics, Color} from "pixi.js";
       ballVelocity.x *= -1;
     }
 
+    // Ball collision with gravity well
     gravityWells.forEach(well => {
-      pulse += 0.05; // Controls speed of pulsation
-      let colorFactor = (Math.sin(pulse) + 1) / 2; // Cycle between 0 and 1
-      let color = Color.shared.setValue([
-        0.5 + 0.5 * colorFactor, // Green component changes
-        0.5 + 0.5 * colorFactor, // More brightness towards yellow
-        0.0 // No blue component
-      ]).toHex();
+      let dx = well.x - ball.x;
+      let dy = well.y - ball.y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      let force = well.strength / (distance * 0.1);
 
-      well = new Graphics()
-        .circle(0, 0, wellRadius)
-        .fill('green');
-      well.x = well.x;
-      well.y = well.y;
-      // well.graphics.clear();
-      // well.fill(color);
-      // well.graphics.beginFill(color).drawCircle(0, 0, 15).endFill();
-      // well.graphics.x = well.x;
-      // well.graphics.y = well.y;
+      if (distance < wellRadius + ballRadius) { // Collision threshold
+        // Compute reflection vector
+        let normalX = dx / distance;
+        let normalY = dy / distance;
+        let dotProduct = ballVelocity.x * normalX + ballVelocity.y * normalY;
+
+        // Reflect velocity and slow it down
+        ballVelocity.x -= 2 * dotProduct * normalX;
+        ballVelocity.y -= 2 * dotProduct * normalY;
+        ballVelocity.x *= 0.7; // Reduce speed to simulate energy loss
+        ballVelocity.y *= 0.7;
+
+        // Push the ball slightly out of the well to prevent sinking
+        ball.x = well.x - normalX * (wellRadius + ballRadius);
+        ball.y = well.y - normalY * (wellRadius + ballRadius);
+      } else {
+        // Apply gravity only if not colliding
+        ballVelocity.x += force * (dx / distance);
+        ballVelocity.y += force * (dy / distance);
+      }
     });
   });
 
