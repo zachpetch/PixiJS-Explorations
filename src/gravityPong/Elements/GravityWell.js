@@ -6,7 +6,7 @@ const WELL_STRENGTH = 0.2;
 export class GravityWell
 {
   constructor(app, x, y, strength = WELL_STRENGTH) {
-    this.radius = strength * 50;
+    this.radius = strength * 100;
     this.graphics = new Graphics()
       .circle(0, 0, this.radius)
       .fill({color: WELL_COLOR});

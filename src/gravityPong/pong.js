@@ -3,6 +3,10 @@ import { Ball } from './Elements/Ball';
 import { Paddle, PADDLE_HEIGHT, PADDLE_WIDTH } from './Elements/Paddle';
 import { GravityWell } from './Elements/GravityWell';
 
+// TODO: Add scoring system
+// TODO: Add reset system
+// TODO: Add click to create gravity well
+
 (async () =>
 {
   // Initialize game
@@ -24,7 +28,7 @@ import { GravityWell } from './Elements/GravityWell';
   // Create gravity wells
   const gravityWells = [
     new GravityWell(app, app.screen.width / 4,     app.screen.height / 2),
-    new GravityWell(app, app.screen.width / 2,     app.screen.height / 2, 0.5),
+    new GravityWell(app, app.screen.width / 2,     app.screen.height / 2, 0.3),
     new GravityWell(app, app.screen.width * (3/4), app.screen.height / 2),
   ];
 
@@ -80,19 +84,32 @@ import { GravityWell } from './Elements/GravityWell';
         (
           ball.graphics.x - ball.radius < paddleLeft.graphics.x + PADDLE_WIDTH &&
           ball.graphics.y > paddleLeft.graphics.y &&
-            ball.graphics.y < paddleLeft.graphics.y + PADDLE_HEIGHT
-        ) ||
-        (
+          ball.graphics.y < paddleLeft.graphics.y + PADDLE_HEIGHT
+        ) || (
           ball.graphics.x + ball.radius > paddleRight.graphics.x &&
-            ball.graphics.y > paddleRight.graphics.y &&
-            ball.graphics.y < paddleRight.graphics.y + PADDLE_HEIGHT
+          ball.graphics.y > paddleRight.graphics.y &&
+          ball.graphics.y < paddleRight.graphics.y + PADDLE_HEIGHT
         )
       ) {
         ball.velocity.x *= -1;
       }
-      // TODO: Handle vertical paddle collisions (currently, the ball gets stuck inside the paddle).
+      if (
+        (
+          ball.graphics.x - ball.radius < paddleLeft.graphics.x + PADDLE_WIDTH &&
+          Math.abs(ball.graphics.y - paddleLeft.graphics.y) < ball.radius
+        ) || (
+          ball.graphics.x - ball.radius < paddleLeft.graphics.x + PADDLE_WIDTH &&
+          Math.abs(ball.graphics.y - (paddleLeft.graphics.y + PADDLE_HEIGHT)) < ball.radius
+        ) || (
+          ball.graphics.x + ball.radius > paddleRight.graphics.x &&
+          Math.abs(ball.graphics.y - paddleRight.graphics.y) < ball.radius
+        ) || (
+          ball.graphics.x + ball.radius > paddleRight.graphics.x &&
+          Math.abs(ball.graphics.y - (paddleRight.graphics.y + PADDLE_HEIGHT)) < ball.radius
+        )
+      ) {
+        ball.velocity.y *= -1;
+      }
     });
-  //   // TODO: Add scoring system
-  //   // TODO: Add reset system
   });
 })();
