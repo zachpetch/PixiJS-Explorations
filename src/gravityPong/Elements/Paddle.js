@@ -2,6 +2,7 @@ import { Graphics } from "pixi.js";
 
 export const PADDLE_WIDTH = 20;
 export const PADDLE_HEIGHT = 100;
+const PADDLE_SPEED = 5;
 const PADDLE_COLOR = 'white';
 
 export class Paddle
@@ -16,5 +17,17 @@ export class Paddle
     this.graphics.y = y;
 
     app.stage.addChild(this.graphics);
+  }
+
+  moveUp() {
+    if (this.graphics.y > 0) {
+      this.graphics.y -= PADDLE_SPEED;
+    }
+  }
+
+  moveDown(screenHeight) {
+    if (this.graphics.y < screenHeight - this.height) {
+      this.graphics.y += PADDLE_SPEED;
+    }
   }
 }

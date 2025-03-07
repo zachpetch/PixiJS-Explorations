@@ -12,7 +12,8 @@
   "description": "",
   "dependencies": {
     "@esotericsoftware/spine-pixi-v8": "^4.2.74",
-    "pixi.js": "^8.8.1"
+    "pixi.js": "^8.8.1",
+    "webfontloader": "^1.6.28"
   },
   "devDependencies": {
     "vite": "^6.2.0"

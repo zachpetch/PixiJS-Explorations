@@ -1,14 +1,23 @@
-import { Application } from 'pixi.js';
+import { Application, Text } from 'pixi.js';
 import { Ball } from './Elements/Ball';
-import { Paddle, PADDLE_HEIGHT, PADDLE_WIDTH } from './Elements/Paddle';
+import { Controller } from './Controller';
 import { GravityWell } from './Elements/GravityWell';
+import { Paddle, PADDLE_HEIGHT, PADDLE_WIDTH } from './Elements/Paddle';
+import { Score } from './Elements/Score';
+import WebFont from 'webfontloader';
 
-// TODO: Add scoring system
 // TODO: Add reset system
 // TODO: Add click to create gravity well
 
 (async () =>
 {
+  WebFont.load({
+    google: {
+      families: ['Micro 5'],
+      // families: ['Revalia'],
+    },
+  });
+
   // Initialize game
   const app = new Application();
 
@@ -21,6 +30,11 @@ import { GravityWell } from './Elements/GravityWell';
   app.canvas.style.position = 'absolute';
   document.body.appendChild(app.canvas);
 
+  const ctrl = new Controller();
+
+  const scoreLeft = new Score(app, app.screen.width / 4, 20)
+  const scoreRight = new Score(app, app.screen.width * (3/4), 20)
+
   // Create paddles
   const paddleLeft  = new Paddle(app, 30, app.screen.height / 2 - PADDLE_HEIGHT / 2);
   const paddleRight = new Paddle(app, app.screen.width - 30 - PADDLE_WIDTH, app.screen.height / 2 - PADDLE_HEIGHT / 2);
@@ -28,7 +42,7 @@ import { GravityWell } from './Elements/GravityWell';
   // Create gravity wells
   const gravityWells = [
     new GravityWell(app, app.screen.width / 4,     app.screen.height / 2),
-    new GravityWell(app, app.screen.width / 2,     app.screen.height / 2, 0.3),
+    new GravityWell(app, app.screen.width / 2,     app.screen.height / 2, 0.6),
     new GravityWell(app, app.screen.width * (3/4), app.screen.height / 2),
   ];
 
@@ -37,78 +51,41 @@ import { GravityWell } from './Elements/GravityWell';
     new Ball(app, app.screen.width / 2, app.screen.height * (2/5)),
   ];
 
-  // Paddle movement (basic keyboard controls)
-  const keys = {};
-
-  window.addEventListener("keydown", (e) => keys[e.key] = true);
-  window.addEventListener("keyup", (e) => keys[e.key] = false);
-
-  app.ticker.add(() => {
-    if (keys["w"] && paddleLeft.graphics.y > 0) paddleLeft.graphics.y -= 5;
-    if (keys["s"] && paddleLeft.graphics.y < app.screen.height - PADDLE_HEIGHT) paddleLeft.graphics.y += 5;
-    if (keys["ArrowUp"] && paddleRight.graphics.y > 0) paddleRight.graphics.y -= 5;
-    if (keys["ArrowDown"] && paddleRight.graphics.y < app.screen.height - PADDLE_HEIGHT) paddleRight.graphics.y += 5;
-  });
-
   app.ticker.add(() =>
   {
+    // Paddle Movement
+    if (ctrl.isPressed("w")) paddleLeft.moveUp();
+    if (ctrl.isPressed("s")) paddleLeft.moveDown(app.screen.height);
+    if (ctrl.isPressed("k") || ctrl.isPressed("ArrowUp")) paddleRight.moveUp();
+    if (ctrl.isPressed("j") || ctrl.isPressed("ArrowDown")) paddleRight.moveDown(app.screen.height);
+    if (ctrl.isPressed("ArrowUp") || ctrl.isPressed("ArrowUp")) paddleRight.moveUp();
+    if (ctrl.isPressed("ArrowDown") || ctrl.isPressed("ArrowDown")) paddleRight.moveDown(app.screen.height);
+
     // Apply gravity well forces
     gravityWells.forEach(well => {
-      balls.forEach(ball => {
-        let dx = well.graphics.x - ball.graphics.x;
-        let dy = well.graphics.y - ball.graphics.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-        let force = well.strength / (distance * 0.1);
-        ball.velocity.x += force * (dx / distance);
-        ball.velocity.y += force * (dy / distance);
-      });
+      balls.forEach(ball => well.applyGravity(ball));
     });
 
     balls.forEach(ball => {
-      // Move ball
-      ball.graphics.x += ball.velocity.x;
-      ball.graphics.y += ball.velocity.y;
+      ball.move();
 
       // Reverse vertical velocity on collision with top/bottom walls
       if (ball.graphics.y <= ball.radius || ball.graphics.y >= app.screen.height - ball.radius) {
-        ball.velocity.y *= -1;
+        ball.reflectY();
       }
 
-      // Reverse horizontal velocity on collision with left/right walls
-      if (ball.graphics.x <= ball.radius || ball.graphics.x >= app.screen.width - ball.radius) {
-        ball.velocity.x *= -1;
+      // Reverse horizontal velocity and hand out points on collision with left/right walls
+      if (ball.graphics.x <= ball.radius) {
+        ball.reflectX();
+        scoreRight.addPoints();
+      }
+      if (ball.graphics.x >= app.screen.width - ball.radius) {
+        ball.reflectX();
+        scoreLeft.addPoints();
       }
 
-      // Collisions with paddles
-      if (
-        (
-          ball.graphics.x - ball.radius < paddleLeft.graphics.x + PADDLE_WIDTH &&
-          ball.graphics.y > paddleLeft.graphics.y &&
-          ball.graphics.y < paddleLeft.graphics.y + PADDLE_HEIGHT
-        ) || (
-          ball.graphics.x + ball.radius > paddleRight.graphics.x &&
-          ball.graphics.y > paddleRight.graphics.y &&
-          ball.graphics.y < paddleRight.graphics.y + PADDLE_HEIGHT
-        )
-      ) {
-        ball.velocity.x *= -1;
-      }
-      if (
-        (
-          ball.graphics.x - ball.radius < paddleLeft.graphics.x + PADDLE_WIDTH &&
-          Math.abs(ball.graphics.y - paddleLeft.graphics.y) < ball.radius
-        ) || (
-          ball.graphics.x - ball.radius < paddleLeft.graphics.x + PADDLE_WIDTH &&
-          Math.abs(ball.graphics.y - (paddleLeft.graphics.y + PADDLE_HEIGHT)) < ball.radius
-        ) || (
-          ball.graphics.x + ball.radius > paddleRight.graphics.x &&
-          Math.abs(ball.graphics.y - paddleRight.graphics.y) < ball.radius
-        ) || (
-          ball.graphics.x + ball.radius > paddleRight.graphics.x &&
-          Math.abs(ball.graphics.y - (paddleRight.graphics.y + PADDLE_HEIGHT)) < ball.radius
-        )
-      ) {
-        ball.velocity.y *= -1;
+      if (ball.collidesWith(paddleLeft) || ball.collidesWith(paddleRight)) {
+        ball.reflectX();
       }
     });
   });
